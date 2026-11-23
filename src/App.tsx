@@ -84,6 +84,10 @@ export function App() {
 
   useEffect(() => {
     refreshAll();
+    const unsubscribe = store.onAuthChange(() => {
+      refreshAll();
+    });
+    return unsubscribe;
   }, []);
 
   const isResidentVT = Boolean(user?.residenteVT);

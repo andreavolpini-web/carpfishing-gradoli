@@ -37,6 +37,7 @@ Se `.env` non è configurato, l'app si avvia automaticamente in **Modalità Loca
    update public.profiles set role = 'admin' where email = 'tua-email@esempio.it';
    ```
 5. (Opzionale) Distribuisci `supabase/functions/booking-cron/index.ts` su Supabase Edge Functions e imposta `RESEND_API_KEY` per inviare solleciti e scadenze automatiche ogni giorno.
+6. **Accesso con Google (Gmail) e Apple ID**: su Supabase vai in **Authentication → Providers**, attiva **Google** (inserendo Client ID e Secret da Google Cloud Console — gratis) e/o **Apple** (da Apple Developer). Aggiungi l'URL della tua app (es. `https://tuo-sito.vercel.app`) in **Authentication → URL Configuration → Redirect URLs**.
 
 ---
 

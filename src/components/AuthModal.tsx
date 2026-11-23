@@ -39,6 +39,21 @@ export function AuthModal({ onClose, onSuccess }: AuthModalProps) {
     }
   }
 
+  async function handleOAuth(provider: 'google' | 'apple') {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await store.loginWithOAuth(provider);
+      if (res.error) {
+        setError(res.error);
+      } else if (res.user) {
+        onSuccess(res.user);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function fillDemo(type: 'user' | 'admin') {
     setMode('login');
     if (type === 'admin') {
@@ -67,6 +82,43 @@ export function AuthModal({ onClose, onSuccess }: AuthModalProps) {
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Chiudi">
             <X size={16} />
           </button>
+        </div>
+
+        {/* Social / OAuth Login */}
+        <div className="stack-sm">
+          <button
+            type="button"
+            className="btn btn-secondary btn-full"
+            disabled={loading}
+            onClick={() => handleOAuth('google')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.26-2.08 3.57-5.15 3.57-8.64z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.93-2.91l-3.87-3c-1.07.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.95H1.28v3.1A12 12 0 0 0 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.29A7.2 7.2 0 0 1 4.9 12c0-.79.14-1.56.38-2.29v-3.1H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39l4-3.1z"/>
+              <path fill="#EA4335" d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l4 3.1c.95-2.84 3.6-4.96 6.72-4.96z"/>
+            </svg>
+            Continua con Google (Gmail)
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-full"
+            style={{ background: '#0f172a', color: '#ffffff' }}
+            disabled={loading}
+            onClick={() => handleOAuth('apple')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.08zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            Continua con Apple ID
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          <span className="text-xs text-muted">oppure con email</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         </div>
 
         <div className="grid-2" style={{ gap: 8 }}>

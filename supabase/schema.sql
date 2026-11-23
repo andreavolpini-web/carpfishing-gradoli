@@ -21,17 +21,22 @@ returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  v_full text := coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', '');
+  v_nome text := coalesce(nullif(new.raw_user_meta_data->>'nome', ''), split_part(v_full, ' ', 1), 'Utente');
+  v_cognome text := coalesce(nullif(new.raw_user_meta_data->>'cognome', ''), nullif(trim(substring(v_full from length(split_part(v_full, ' ', 1)) + 2)), ''), '');
 begin
   insert into public.profiles (id, nome, cognome, email, telefono, residente_vt, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'nome', 'Utente'),
-    coalesce(new.raw_user_meta_data->>'cognome', ''),
+    case when v_nome = '' then 'Utente' else v_nome end,
+    v_cognome,
     new.email,
     coalesce(new.raw_user_meta_data->>'telefono', ''),
     coalesce((new.raw_user_meta_data->>'residente_vt')::boolean, false),
     'user'
-  );
+  )
+  on conflict (id) do nothing;
   return new;
 end;
 $$;

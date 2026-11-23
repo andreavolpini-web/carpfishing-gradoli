@@ -146,6 +146,53 @@ export const store = {
     return { user: profile };
   },
 
+  async loginWithOAuth(provider: 'google' | 'apple'): Promise<AuthResult> {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) return { user: null, error: error.message };
+      return { user: null };
+    }
+
+    ensureLocalSeed();
+    const email = provider === 'google' ? 'pescatore.gmail@gmail.com' : 'pescatore.apple@icloud.com';
+    const users = readLS<StoredUser[]>(LS_KEYS.users, SEED_USERS);
+    let found = users.find((u) => u.email === email);
+    if (!found) {
+      found = {
+        id: `u_${provider}`,
+        nome: provider === 'google' ? 'Utente' : 'Utente',
+        cognome: provider === 'google' ? 'Google' : 'Apple',
+        email,
+        telefono: '',
+        residenteVT: false,
+        role: 'user',
+        emailVerified: true,
+        phoneVerified: false,
+        password: '',
+      };
+      users.push(found);
+      writeLS(LS_KEYS.users, users);
+    }
+    const { password: _p, ...profile } = found;
+    writeLS(LS_KEYS.session, profile);
+    return { user: profile };
+  },
+
+  onAuthChange(callback: () => void): () => void {
+    if (isSupabaseConfigured && supabase) {
+      const { data } = supabase.auth.onAuthStateChange(() => {
+        callback();
+      });
+      return () => data.subscription.unsubscribe();
+    }
+    return () => {};
+  },
+
   async logout(): Promise<void> {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
