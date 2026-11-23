@@ -38,7 +38,7 @@ export const PEGS: Peg[] = RAW_PEGS.map((item, idx) => {
         ? `https://maps.google.com/?q=${item.gps.replace(/\s+/g, '')}`
         : null,
     img: item.img,
-    note: residentOnly || residentDiscount
+    note: residentOnly
       ? 'Riservata ai residenti nella provincia di Viterbo.'
       : 'Postazione Lago di Bolsena — Comune di Gradoli.',
     residentOnly,
