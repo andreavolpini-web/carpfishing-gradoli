@@ -409,7 +409,18 @@ export function App() {
                       />
                       <div className="peg-media-overlay" />
                       <div className="peg-media-top">
-                        <span className="gps-chip">GPS: {p.gps}</span>
+                        {p.mapsUrl ? (
+                          <a
+                            href={p.mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="gps-chip"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700 }}
+                          >
+                            Google Maps <ExternalLink size={11} />
+                          </a>
+                        ) : <span />}
                         {p.residentOnly ? (
                           <span className="badge badge-warning">Riservata ai residenti VT</span>
                         ) : null}
