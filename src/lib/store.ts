@@ -306,7 +306,12 @@ export const store = {
   },
 
   // --- MUTATIONS ---
-  async createBooking(booking: Booking, emailSubject: string): Promise<void> {
+  async createBooking(
+    booking: Booking,
+    userEmailSubject: string,
+    adminEmail?: string,
+    adminEmailSubject?: string,
+  ): Promise<void> {
     if (isSupabaseConfigured && supabase) {
       await supabase.from('bookings').insert({
         id: booking.id,
@@ -321,13 +326,19 @@ export const store = {
         causale: booking.causale,
         status: booking.status,
       });
-      await supabase.from('email_logs').insert({ recipient: booking.userEmail, subject: emailSubject });
+      await this.dispatchEmail(booking.userEmail, userEmailSubject);
+      if (adminEmail && adminEmailSubject) {
+        await this.dispatchEmail(adminEmail, adminEmailSubject);
+      }
       return;
     }
     const bookings = readLS<Booking[]>(LS_KEYS.bookings, SEED_BOOKINGS);
     bookings.unshift(booking);
     writeLS(LS_KEYS.bookings, bookings);
-    await this.addEmailLog(booking.userEmail, emailSubject);
+    await this.addEmailLog(booking.userEmail, userEmailSubject);
+    if (adminEmail && adminEmailSubject) {
+      await this.addEmailLog(adminEmail, adminEmailSubject);
+    }
   },
 
   async uploadReceipt(bookingId: string, file: File, adminEmail: string, emailSubject: string): Promise<{ proofFile: string; proofUrl: string | null }> {
@@ -367,11 +378,26 @@ export const store = {
     return { proofFile: file.name, proofUrl };
   },
 
+  async dispatchEmail(to: string, subject: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from('email_logs').insert({ recipient: to, subject });
+      try {
+        await supabase.functions.invoke('send-email', { body: { to, subject } });
+      } catch {
+        // Edge Function opzionale: il log resta comunque registrato in email_logs
+      }
+      return;
+    }
+    await this.addEmailLog(to, subject);
+  },
+
   async updateBookingStatus(
     bookingId: string,
     patch: Partial<Pick<Booking, 'status' | 'proofFile' | 'proofUrl' | 'daysElapsed' | 'reminderSent'>>,
     logRecipient?: string,
     logSubject?: string,
+    adminEmail?: string,
+    adminSubject?: string,
   ): Promise<void> {
     if (isSupabaseConfigured && supabase) {
       const dbPatch: Record<string, unknown> = {};
@@ -382,7 +408,10 @@ export const store = {
       if (patch.reminderSent !== undefined) dbPatch.reminder_sent = patch.reminderSent;
       await supabase.from('bookings').update(dbPatch).eq('id', bookingId);
       if (logRecipient && logSubject) {
-        await supabase.from('email_logs').insert({ recipient: logRecipient, subject: logSubject });
+        await this.dispatchEmail(logRecipient, logSubject);
+      }
+      if (adminEmail && adminSubject) {
+        await this.dispatchEmail(adminEmail, adminSubject);
       }
       return;
     }
@@ -394,6 +423,9 @@ export const store = {
     }
     if (logRecipient && logSubject) {
       await this.addEmailLog(logRecipient, logSubject);
+    }
+    if (adminEmail && adminSubject) {
+      await this.addEmailLog(adminEmail, adminSubject);
     }
   },
 

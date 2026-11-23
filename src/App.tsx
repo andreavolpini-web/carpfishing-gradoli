@@ -182,6 +182,8 @@ export function App() {
     await store.createBooking(
       booking,
       `Prenotazione #${newId} — €${finalPrice.toFixed(2)} | Causale: ${causale}`,
+      settings.email,
+      `[ADMIN] Nuova prenotazione #${newId} — Piazzola ${selectedPeg.numero} (${booking.userName}, ${formatDateIT(dates[0])} → ${formatDateIT(dates[dates.length - 1])}, €${finalPrice.toFixed(2)})`,
     );
     await refreshAll();
     setSelectedPeg(null);
@@ -210,6 +212,8 @@ export function App() {
       { status: 'annullata' },
       booking.userEmail,
       `Disdetta #${booking.id} confermata — Rimborso previsto: €${refundAmt.toFixed(2)} (${policy.pct}%)`,
+      settings.email,
+      `[ADMIN] Disdetta prenotazione #${booking.id} — Piazzola ${booking.pegId} (${booking.userName}, rimborso previsto: €${refundAmt.toFixed(2)})`,
     );
     await refreshAll();
     notify(`Prenotazione #${booking.id} disdetta. Rimborso calcolato: €${refundAmt.toFixed(2)} (${policy.pct}%).`);
