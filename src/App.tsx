@@ -97,6 +97,7 @@ export function App() {
 
   function hasConflict(pegId: string, range: string[]): string | null {
     for (const iso of range) {
+      const monthLocked = !settings.unlockedMonths.includes(iso.slice(0, 7));
       const closed = closures.some((c) => iso >= c.startDate && iso <= c.endDate);
       const occupied = bookings.some(
         (b) =>
@@ -104,7 +105,7 @@ export function App() {
           ['in_attesa_pagamento', 'prova_caricata', 'confermata'].includes(b.status) &&
           b.dates.includes(iso),
       );
-      if (closed || occupied) return iso;
+      if (monthLocked || closed || occupied) return iso;
     }
     return null;
   }
@@ -534,6 +535,7 @@ export function App() {
                   selectedRange={selectedRange}
                   closures={closures}
                   bookings={bookings}
+                  unlockedMonths={settings.unlockedMonths}
                   onChangeMonth={handleChangeMonth}
                   onSelectStartDate={handleSelectStartDate}
                 />

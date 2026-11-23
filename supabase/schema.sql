@@ -61,6 +61,7 @@ create table if not exists public.app_settings (
   whatsapp text not null default '+393318495877',
   email text not null default 'prenotazioni@carpfishingradoli.it',
   pec text not null default 'carpfishingradoli@pec.it',
+  unlocked_months text[] not null default '{}',
   updated_at timestamptz not null default now()
 );
 

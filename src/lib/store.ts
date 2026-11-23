@@ -277,6 +277,7 @@ export const store = {
             whatsapp: s.whatsapp,
             email: s.email,
             pec: s.pec,
+            unlockedMonths: Array.isArray(s.unlocked_months) ? s.unlocked_months : [],
           }
         : DEFAULT_SETTINGS;
 
@@ -291,10 +292,15 @@ export const store = {
     }
 
     ensureLocalSeed();
+    const localSettings = readLS<AppSettings>(LS_KEYS.settings, DEFAULT_SETTINGS);
     return {
       bookings: readLS<Booking[]>(LS_KEYS.bookings, SEED_BOOKINGS),
       closures: readLS<GlobalClosure[]>(LS_KEYS.closures, SEED_CLOSURES),
-      settings: readLS<AppSettings>(LS_KEYS.settings, DEFAULT_SETTINGS),
+      settings: {
+        ...DEFAULT_SETTINGS,
+        ...localSettings,
+        unlockedMonths: Array.isArray(localSettings.unlockedMonths) ? localSettings.unlockedMonths : [],
+      },
       emailLogs: readLS<EmailLog[]>(LS_KEYS.emailLogs, SEED_EMAIL_LOGS),
     };
   },
@@ -432,6 +438,7 @@ export const store = {
           price_4_days: settings.packages[4].price,
           reminder_days_x: settings.reminderDaysX,
           expire_extra_days_y: settings.expireExtraDaysY,
+          unlocked_months: settings.unlockedMonths,
           updated_at: new Date().toISOString(),
         })
         .eq('id', 1);

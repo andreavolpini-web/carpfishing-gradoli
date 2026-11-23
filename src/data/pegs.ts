@@ -62,6 +62,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   whatsapp: '+393318495877',
   email: 'prenotazioni@carpfishingradoli.it',
   pec: 'carpfishingradoli@pec.it',
+  unlockedMonths: [],
 };
 
 export const SEED_USERS: Array<UserProfile & { password: string }> = [

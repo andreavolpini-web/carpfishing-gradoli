@@ -78,4 +78,5 @@ export interface AppSettings {
   whatsapp: string;
   email: string;
   pec: string;
+  unlockedMonths: string[];
 }

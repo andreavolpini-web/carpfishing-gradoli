@@ -1,7 +1,19 @@
 import { useState } from 'react';
-import { CalendarOff, CheckCircle2, Clock, ExternalLink, Mail, Settings, Trash2, XCircle } from 'lucide-react';
-import { daysBetweenISO, formatDateIT } from '../lib/dates';
+import { CalendarOff, CheckCircle2, Clock, ExternalLink, LockOpen, Mail, Settings, Trash2, XCircle } from 'lucide-react';
+import { daysBetweenISO, formatDateIT, MONTHS_IT, pad } from '../lib/dates';
 import type { AppSettings, Booking, BookingStatus, EmailLog, GlobalClosure } from '../types';
+
+function getNextMonthKey(): string {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}`;
+}
+
+function formatMonthIT(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  if (!y || !m) return key;
+  return `${MONTHS_IT[m - 1]} ${y}`;
+}
 
 interface AdminPanelProps {
   bookings: Booking[];
@@ -37,6 +49,7 @@ export function AdminPanel({
   onSaveSettings,
 }: AdminPanelProps) {
   const [tab, setTab] = useState<'bookings' | 'closures' | 'settings'>('bookings');
+  const [monthToUnlock, setMonthToUnlock] = useState(getNextMonthKey);
   const [startDate, setStartDate] = useState('2026-12-01');
   const [endDate, setEndDate] = useState('2026-12-05');
   const [motivo, setMotivo] = useState('');
@@ -46,6 +59,19 @@ export function AdminPanel({
   const [p4, setP4] = useState(settings.packages[4].price);
   const [remX, setRemX] = useState(settings.reminderDaysX);
   const [expY, setExpY] = useState(settings.expireExtraDaysY);
+
+  function handleUnlockMonth(e: React.FormEvent) {
+    e.preventDefault();
+    if (!monthToUnlock) return;
+    if (settings.unlockedMonths.includes(monthToUnlock)) return;
+    const nextMonths = [...settings.unlockedMonths, monthToUnlock].sort();
+    onSaveSettings({ ...settings, unlockedMonths: nextMonths });
+  }
+
+  function handleLockMonth(key: string) {
+    const nextMonths = settings.unlockedMonths.filter((m) => m !== key);
+    onSaveSettings({ ...settings, unlockedMonths: nextMonths });
+  }
 
   function submitClosure(e: React.FormEvent) {
     e.preventDefault();
@@ -84,7 +110,7 @@ export function AdminPanel({
           className={`btn btn-sm ${tab === 'closures' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setTab('closures')}
         >
-          <CalendarOff size={14} /> Chiusure Globali
+          <CalendarOff size={14} /> Mesi Aperti &amp; Chiusure
         </button>
         <button
           type="button"
@@ -172,63 +198,131 @@ export function AdminPanel({
       )}
 
       {tab === 'closures' && (
-        <div className="grid-2">
-          <div className="card card-pad stack-sm">
-            <h2 style={{ margin: 0, fontSize: 16 }}>Chiusure Globali (Pesca Interdetta)</h2>
-            <p className="text-xs text-muted" style={{ margin: 0 }}>
-              Valide automaticamente su <strong>tutte le 20 piazzole</strong>.
-            </p>
-            {closures.map((c) => (
-              <div
-                key={c.id}
-                className="row-between"
-                style={{
-                  padding: 10,
-                  borderRadius: 10,
-                  background: 'var(--surface-muted)',
-                  border: '1px solid #fcd34d',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>
-                    {c.startDate === c.endDate
-                      ? `${formatDateIT(c.startDate)} (Giorno singolo)`
-                      : `Dal ${formatDateIT(c.startDate)} al ${formatDateIT(c.endDate)} (${daysBetweenISO(c.startDate, c.endDate) + 1} gg)`}
-                  </div>
-                  <div className="text-xs text-muted">{c.motivo}</div>
-                </div>
-                <button type="button" className="btn btn-danger-outline btn-sm" onClick={() => onRemoveClosure(c.id)}>
-                  <Trash2 size={14} />
-                </button>
+        <div className="stack-md">
+          <div className="grid-2">
+            <div className="card card-pad stack-sm">
+              <div className="row-gap">
+                <LockOpen size={16} color="var(--primary)" />
+                <h2 style={{ margin: 0, fontSize: 16 }}>Mesi Sbloccati alle Prenotazioni</h2>
               </div>
-            ))}
+              <p className="text-xs text-muted" style={{ margin: 0 }}>
+                Di default il calendario è <strong>tutto bloccato</strong>. Solo i mesi elencati qui sono prenotabili.
+              </p>
+              {settings.unlockedMonths.length === 0 ? (
+                <div className="text-xs text-muted" style={{ padding: '8px 0' }}>
+                  Nessun mese sbloccato: tutte le date risultano bloccate agli utenti.
+                </div>
+              ) : (
+                settings.unlockedMonths.map((key) => (
+                  <div
+                    key={key}
+                    className="row-between"
+                    style={{
+                      padding: 10,
+                      borderRadius: 10,
+                      background: 'var(--primary-soft)',
+                      border: '1px solid #99d5ce',
+                    }}
+                  >
+                    <strong style={{ fontSize: 13, color: 'var(--primary)' }}>{formatMonthIT(key)}</strong>
+                    <button
+                      type="button"
+                      className="btn btn-danger-outline btn-sm"
+                      onClick={() => handleLockMonth(key)}
+                    >
+                      Blocca
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={handleUnlockMonth} className="card card-pad stack-sm" style={{ height: 'fit-content' }}>
+              <h2 style={{ margin: 0, fontSize: 16 }}>Sblocca un Mese</h2>
+              <p className="text-xs text-muted" style={{ margin: 0 }}>
+                Preimpostato sul mese successivo all&apos;attuale.
+              </p>
+              <div className="field">
+                <label>Mese da sbloccare *</label>
+                <input
+                  className="input"
+                  type="month"
+                  required
+                  value={monthToUnlock}
+                  onChange={(e) => setMonthToUnlock(e.target.value)}
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn-primary btn-full"
+                disabled={!monthToUnlock || settings.unlockedMonths.includes(monthToUnlock)}
+              >
+                <LockOpen size={14} />{' '}
+                {settings.unlockedMonths.includes(monthToUnlock)
+                  ? `${formatMonthIT(monthToUnlock)} già sbloccato`
+                  : `Sblocca ${formatMonthIT(monthToUnlock)}`}
+              </button>
+            </form>
           </div>
 
-          <form onSubmit={submitClosure} className="card card-pad stack-sm" style={{ height: 'fit-content' }}>
-            <h2 style={{ margin: 0, fontSize: 16 }}>Aggiungi Chiusura Globale</h2>
-            <div className="grid-2">
-              <div className="field">
-                <label>Dal (Data inizio) *</label>
-                <input className="input" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <div className="grid-2">
+            <div className="card card-pad stack-sm">
+              <h2 style={{ margin: 0, fontSize: 16 }}>Chiusure Globali (Pesca Interdetta)</h2>
+              <p className="text-xs text-muted" style={{ margin: 0 }}>
+                Valide automaticamente su <strong>tutte le 20 piazzole</strong>.
+              </p>
+              {closures.map((c) => (
+                <div
+                  key={c.id}
+                  className="row-between"
+                  style={{
+                    padding: 10,
+                    borderRadius: 10,
+                    background: 'var(--surface-muted)',
+                    border: '1px solid #fcd34d',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>
+                      {c.startDate === c.endDate
+                        ? `${formatDateIT(c.startDate)} (Giorno singolo)`
+                        : `Dal ${formatDateIT(c.startDate)} al ${formatDateIT(c.endDate)} (${daysBetweenISO(c.startDate, c.endDate) + 1} gg)`}
+                    </div>
+                    <div className="text-xs text-muted">{c.motivo}</div>
+                  </div>
+                  <button type="button" className="btn btn-danger-outline btn-sm" onClick={() => onRemoveClosure(c.id)}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={submitClosure} className="card card-pad stack-sm" style={{ height: 'fit-content' }}>
+              <h2 style={{ margin: 0, fontSize: 16 }}>Aggiungi Chiusura Globale</h2>
+              <div className="grid-2">
+                <div className="field">
+                  <label>Dal (Data inizio) *</label>
+                  <input className="input" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Al (opzionale per 1 gg)</label>
+                  <input className="input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
               </div>
               <div className="field">
-                <label>Al (opzionale per 1 gg)</label>
-                <input className="input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <label>Motivo</label>
+                <input
+                  className="input"
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Es. Fermo biologico, Gara sociale"
+                />
               </div>
-            </div>
-            <div className="field">
-              <label>Motivo</label>
-              <input
-                className="input"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                placeholder="Es. Fermo biologico, Gara sociale"
-              />
-            </div>
-            <button type="submit" className="btn btn-warning btn-full">
-              Blocca su Tutti i Calendari
-            </button>
-          </form>
+              <button type="submit" className="btn btn-warning btn-full">
+                Blocca su Tutti i Calendari
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
