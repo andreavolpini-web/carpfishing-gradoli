@@ -456,7 +456,17 @@ export function App() {
                     />
                     <div className="peg-media-overlay" />
                     <div className="peg-media-top">
-                      <span className="gps-chip">GPS: {selectedPeg.gps}</span>
+                      {selectedPeg.mapsUrl ? (
+                        <a
+                          href={selectedPeg.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="gps-chip"
+                          style={{ color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700 }}
+                        >
+                          Google Maps <ExternalLink size={11} />
+                        </a>
+                      ) : <span />}
                     </div>
                     <div className="peg-media-bottom">
                       <strong style={{ fontSize: 20 }}>{selectedPeg.nome}</strong>
@@ -465,16 +475,7 @@ export function App() {
                   <div className="card-pad stack-sm">
                     <div className="row-between text-xs text-muted">
                       <span>{selectedPeg.note}</span>
-                      {selectedPeg.mapsUrl && (
-                        <a
-                          href={selectedPeg.mapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: 'var(--primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                        >
-                          Google Maps <ExternalLink size={12} />
-                        </a>
-                      )}
+                      <span className="font-mono">GPS: {selectedPeg.gps}</span>
                     </div>
                   </div>
                 </div>
