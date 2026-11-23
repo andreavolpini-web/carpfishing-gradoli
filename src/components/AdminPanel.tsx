@@ -117,7 +117,7 @@ export function AdminPanel({
           className={`btn btn-sm ${tab === 'settings' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setTab('settings')}
         >
-          <Settings size={14} /> Listino &amp; Regole X/Y
+          <Settings size={14} /> Listino &amp; Scadenze
         </button>
       </div>
 
@@ -127,12 +127,12 @@ export function AdminPanel({
             <div>
               <h2 style={{ margin: 0, fontSize: 16 }}>Prenotazioni &amp; Conferma Bonifici</h2>
               <p className="text-xs text-muted" style={{ margin: '4px 0 0' }}>
-                Sollecito dopo <strong>{settings.reminderDaysX} gg</strong>, sblocco automatico dopo{' '}
-                <strong>{settings.reminderDaysX + settings.expireExtraDaysY} gg</strong>.
+                Sollecito automatico dopo <strong>{settings.reminderDaysX} gg</strong> senza ricevuta; sblocco automatico della piazzola dopo{' '}
+                <strong>{settings.reminderDaysX + settings.expireExtraDaysY} gg</strong> totali.
               </p>
             </div>
             <button type="button" className="btn btn-warning btn-sm" onClick={onSimulateDayPass}>
-              <Clock size={14} /> Simula +1 Giorno (Cron X / X+Y)
+              <Clock size={14} /> Simula +1 Giorno (Solleciti e Scadenze)
             </button>
           </div>
 
@@ -327,8 +327,13 @@ export function AdminPanel({
       )}
 
       {tab === 'settings' && (
-        <form onSubmit={submitSettings} className="card card-pad stack-md" style={{ maxWidth: 540 }}>
-          <h2 style={{ margin: 0, fontSize: 16 }}>Listino Pacchetti &amp; Regole X/Y</h2>
+        <form onSubmit={submitSettings} className="card card-pad stack-md" style={{ maxWidth: 580 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 16 }}>Listino Pacchetti &amp; Scadenze Pagamento</h2>
+            <p className="text-xs text-muted" style={{ margin: '4px 0 0' }}>
+              Imposta le tariffe standard e le tempistiche automatiche per i bonifici non ancora caricati.
+            </p>
+          </div>
           <div className="grid-3">
             <div className="field">
               <label>2 gg / 1 notte (€)</label>
@@ -343,14 +348,23 @@ export function AdminPanel({
               <input className="input" type="number" value={p4} onChange={(e) => setP4(Number(e.target.value))} />
             </div>
           </div>
-          <div className="grid-2">
-            <div className="field">
-              <label>Sollecito dopo (X gg)</label>
-              <input className="input" type="number" value={remX} onChange={(e) => setRemX(Number(e.target.value))} />
-            </div>
-            <div className="field">
-              <label>Extra prima sblocco (Y gg)</label>
-              <input className="input" type="number" value={expY} onChange={(e) => setExpY(Number(e.target.value))} />
+          <div className="stack-sm" style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            <strong style={{ fontSize: 13.5 }}>Gestione automatica mancato pagamento</strong>
+            <div className="grid-2">
+              <div className="field">
+                <label>Giorni prima del sollecito email</label>
+                <input className="input" type="number" min={1} value={remX} onChange={(e) => setRemX(Number(e.target.value))} />
+                <span className="text-xs text-muted">
+                  Dopo quanti giorni dalla prenotazione inviare il promemoria se l&apos;utente non ha ancora caricato la ricevuta.
+                </span>
+              </div>
+              <div className="field">
+                <label>Giorni extra dopo il sollecito prima dello sblocco</label>
+                <input className="input" type="number" min={1} value={expY} onChange={(e) => setExpY(Number(e.target.value))} />
+                <span className="text-xs text-muted">
+                  Giorni concessi dopo il sollecito prima di annullare la prenotazione e liberare la piazzola (totale: <strong>{Number(remX) + Number(expY)} gg</strong>).
+                </span>
+              </div>
             </div>
           </div>
           <button type="submit" className="btn btn-primary">

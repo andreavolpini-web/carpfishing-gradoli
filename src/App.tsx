@@ -811,7 +811,7 @@ export function App() {
             onSaveSettings={async (next) => {
               await store.saveSettings(next);
               await refreshAll();
-              notify('Listino e parametri X/Y salvati!');
+              notify('Listino e scadenze salvati!');
             }}
           />
         )}
