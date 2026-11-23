@@ -38,11 +38,9 @@ export const PEGS: Peg[] = RAW_PEGS.map((item, idx) => {
         ? `https://maps.google.com/?q=${item.gps.replace(/\s+/g, '')}`
         : null,
     img: item.img,
-    note: residentOnly
-      ? 'Riservata esclusivamente ai residenti nella provincia di Viterbo (sconto 50%).'
-      : residentDiscount
-        ? 'Sconto 50% riservato ai residenti nella provincia di Viterbo.'
-        : 'Postazione Lago di Bolsena — Comune di Gradoli.',
+    note: residentOnly || residentDiscount
+      ? 'Riservata ai residenti nella provincia di Viterbo.'
+      : 'Postazione Lago di Bolsena — Comune di Gradoli.',
     residentOnly,
     residentDiscount,
     color: residentOnly ? '#b45309' : PALETTE[idx % PALETTE.length],
