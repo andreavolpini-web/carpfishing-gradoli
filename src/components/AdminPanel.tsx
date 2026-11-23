@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarOff, CheckCircle2, Clock, ExternalLink, LockOpen, Mail, Search, Settings, Trash2, XCircle } from 'lucide-react';
+import { CalendarOff, CheckCircle2, Clock, Download, ExternalLink, LockOpen, Mail, Search, Settings, Trash2, XCircle } from 'lucide-react';
 import { daysBetweenISO, formatDateIT, MONTHS_IT, pad } from '../lib/dates';
 import type { AppSettings, Booking, BookingStatus, EmailLog, GlobalClosure } from '../types';
 
@@ -155,6 +155,49 @@ export function AdminPanel({
           { id: 'disdette', label: 'Disdette / Scadute', count: counts.disdette },
         ];
 
+        function exportBookingsCSV(list: Booking[]) {
+          const esc = (v: string | number | boolean | null | undefined) =>
+            `"${String(v ?? '').replace(/"/g, '""')}"`;
+          const header = [
+            'ID',
+            'Piazzola',
+            'Stato',
+            'Utente',
+            'Email',
+            'Data Arrivo',
+            'Data Partenza',
+            'Giorni',
+            'Importo (€)',
+            'Sconto VT',
+            'Causale',
+            'Ricevuta',
+          ];
+          const rows = list.map((b) => [
+            b.id,
+            `Piazzola ${b.pegId}`,
+            STATUS_META[b.status].label,
+            b.userName,
+            b.userEmail,
+            b.dates[0] ? formatDateIT(b.dates[0]) : '',
+            b.dates[b.dates.length - 1] ? formatDateIT(b.dates[b.dates.length - 1]) : '',
+            b.duration,
+            b.total.toFixed(2).replace('.', ','),
+            b.discountApplied ? 'SI' : 'NO',
+            b.causale,
+            b.proofFile || '',
+          ]);
+          const csv = '\uFEFF' + [header, ...rows].map((r) => r.map(esc).join(';')).join('\r\n');
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `prenotazioni_gradoli_${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+
         return (
           <div className="stack-md">
             <div className="card card-pad row-between">
@@ -165,9 +208,19 @@ export function AdminPanel({
                   <strong>{settings.reminderDaysX + settings.expireExtraDaysY} gg</strong> totali.
                 </p>
               </div>
-              <button type="button" className="btn btn-warning btn-sm" onClick={onSimulateDayPass}>
-                <Clock size={14} /> Simula +1 Giorno (Solleciti e Scadenze)
-              </button>
+              <div className="row-gap">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={filtered.length === 0}
+                  onClick={() => exportBookingsCSV(filtered)}
+                >
+                  <Download size={14} /> Esporta Excel ({filtered.length})
+                </button>
+                <button type="button" className="btn btn-warning btn-sm" onClick={onSimulateDayPass}>
+                  <Clock size={14} /> Simula +1 Giorno
+                </button>
+              </div>
             </div>
 
             {/* Filtri stato + Ricerca */}
