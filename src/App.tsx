@@ -410,7 +410,7 @@ export function App() {
                       <div className="peg-media-overlay" />
                       <div className="peg-media-top">
                         <span className="gps-chip">GPS: {p.gps}</span>
-                        {p.residentOnly ? (
+                        {p.residentOnly || p.residentDiscount ? (
                           <span className="badge badge-warning">Riservata ai residenti VT</span>
                         ) : null}
                       </div>
