@@ -411,9 +411,7 @@ export function App() {
                       <div className="peg-media-top">
                         <span className="gps-chip">GPS: {p.gps}</span>
                         {p.residentOnly ? (
-                          <span className="badge badge-warning">Solo VT (-50%)</span>
-                        ) : p.residentDiscount ? (
-                          <span className="badge badge-success">-50% VT</span>
+                          <span className="badge badge-warning">Riservata ai residenti VT</span>
                         ) : null}
                       </div>
                       <div className="peg-media-bottom">
