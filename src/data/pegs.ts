@@ -40,7 +40,7 @@ export const PEGS: Peg[] = RAW_PEGS.map((item, idx) => {
     img: item.img,
     note: residentOnly
       ? 'Riservata ai residenti nella provincia di Viterbo.'
-      : 'Postazione Lago di Bolsena — Comune di Gradoli.',
+      : '',
     residentOnly,
     residentDiscount,
     color: residentOnly ? '#b45309' : PALETTE[idx % PALETTE.length],
