@@ -64,6 +64,7 @@ export function App() {
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [confirmCancelBooking, setConfirmCancelBooking] = useState<Booking | null>(null);
 
   const toastTimer = useRef<number | undefined>(undefined);
 
@@ -673,7 +674,7 @@ export function App() {
                           <button
                             type="button"
                             className="btn btn-danger-outline btn-sm btn-full"
-                            onClick={() => handleCancelBooking(b)}
+                            onClick={() => setConfirmCancelBooking(b)}
                           >
                             Disdici Prenotazione
                           </button>
@@ -833,6 +834,57 @@ export function App() {
           }}
         />
       )}
+
+      {confirmCancelBooking && (() => {
+        const b = confirmCancelBooking;
+        const peg = PEGS.find((p) => p.id === b.pegId);
+        const policy = getRefundPolicy(b.dates[0]);
+        const refundAmt = b.status === 'confermata' ? (b.total * policy.pct) / 100 : 0;
+        return (
+          <div className="modal-backdrop" onClick={() => setConfirmCancelBooking(null)}>
+            <div className="modal-card stack-md" onClick={(e) => e.stopPropagation()}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Confermi la disdetta?</h2>
+                <p className="text-xs text-muted" style={{ margin: '6px 0 0' }}>
+                  Stai per annullare la prenotazione <strong>#{b.id}</strong> —{' '}
+                  <strong>{peg ? peg.nome : `Piazzola ${b.pegId}`}</strong> ({formatDateIT(b.dates[0])} →{' '}
+                  {formatDateIT(b.dates[b.dates.length - 1])}).
+                </p>
+              </div>
+
+              <div className="card card-pad stack-sm" style={{ background: 'var(--surface-muted)', padding: 12 }}>
+                <div className="text-xs text-muted">{policy.label}</div>
+                <div className="text-sm">
+                  Rimborso previsto:{' '}
+                  <strong style={{ color: 'var(--primary)' }}>€{refundAmt.toFixed(2)}</strong>
+                </div>
+              </div>
+
+              <div className="grid-2" style={{ gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setConfirmCancelBooking(null)}
+                >
+                  Annulla
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ background: 'var(--danger)', color: '#ffffff' }}
+                  onClick={async () => {
+                    const target = confirmCancelBooking;
+                    setConfirmCancelBooking(null);
+                    await handleCancelBooking(target);
+                  }}
+                >
+                  Conferma Disdetta
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
