@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { CalendarOff, CheckCircle2, Clock, ExternalLink, LockOpen, Mail, Settings, Trash2, XCircle } from 'lucide-react';
+import { CalendarOff, CheckCircle2, Clock, ExternalLink, LockOpen, Mail, Search, Settings, Trash2, XCircle } from 'lucide-react';
 import { daysBetweenISO, formatDateIT, MONTHS_IT, pad } from '../lib/dates';
 import type { AppSettings, Booking, BookingStatus, EmailLog, GlobalClosure } from '../types';
+
+type BookingFilter = 'all' | 'da_verificare' | 'attesa' | 'confermate' | 'disdette';
 
 function getNextMonthKey(): string {
   const now = new Date();
@@ -49,6 +51,8 @@ export function AdminPanel({
   onSaveSettings,
 }: AdminPanelProps) {
   const [tab, setTab] = useState<'bookings' | 'closures' | 'settings'>('bookings');
+  const [bookingFilter, setBookingFilter] = useState<BookingFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [monthToUnlock, setMonthToUnlock] = useState(getNextMonthKey);
   const [startDate, setStartDate] = useState('2026-12-01');
   const [endDate, setEndDate] = useState('2026-12-05');
@@ -121,81 +125,157 @@ export function AdminPanel({
         </button>
       </div>
 
-      {tab === 'bookings' && (
-        <div className="stack-md">
-          <div className="card card-pad row-between">
-            <div>
-              <h2 style={{ margin: 0, fontSize: 16 }}>Prenotazioni &amp; Conferma Bonifici</h2>
-              <p className="text-xs text-muted" style={{ margin: '4px 0 0' }}>
-                Sollecito automatico dopo <strong>{settings.reminderDaysX} gg</strong> senza ricevuta; sblocco automatico della piazzola dopo{' '}
-                <strong>{settings.reminderDaysX + settings.expireExtraDaysY} gg</strong> totali.
-              </p>
-            </div>
-            <button type="button" className="btn btn-warning btn-sm" onClick={onSimulateDayPass}>
-              <Clock size={14} /> Simula +1 Giorno (Solleciti e Scadenze)
-            </button>
-          </div>
+      {tab === 'bookings' && (() => {
+        const counts = {
+          all: bookings.length,
+          da_verificare: bookings.filter((b) => b.status === 'prova_caricata').length,
+          attesa: bookings.filter((b) => b.status === 'in_attesa_pagamento').length,
+          confermate: bookings.filter((b) => b.status === 'confermata').length,
+          disdette: bookings.filter((b) => b.status === 'annullata' || b.status === 'scaduta').length,
+        };
 
-          <div className="stack-sm">
-            {bookings.map((b) => {
-              const meta = STATUS_META[b.status];
-              return (
-                <div key={b.id} className="card card-pad row-between">
-                  <div className="stack-sm" style={{ gap: 4 }}>
-                    <div className="row-gap">
-                      <strong style={{ fontSize: 14 }}>
-                        #{b.id} — Piazzola {b.pegId}
-                      </strong>
-                      <span className={`badge ${meta.cls}`}>{meta.label}</span>
-                    </div>
-                    <div className="text-xs text-muted">
-                      {b.userName} ({b.userEmail}) • {formatDateIT(b.dates[0])} →{' '}
-                      {formatDateIT(b.dates[b.dates.length - 1])} • <strong>€{b.total.toFixed(2)}</strong>
-                    </div>
-                    <div className="font-mono text-xs text-muted">{b.causale}</div>
-                    {b.proofFile && (
-                      <div className="text-xs">
-                        Ricevuta: <strong>{b.proofFile}</strong>{' '}
-                        {b.proofUrl && (
-                          <a href={b.proofUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: 700 }}>
-                            Apri file <ExternalLink size={11} style={{ verticalAlign: -1 }} />
-                          </a>
+        const q = searchQuery.trim().toLowerCase();
+        const filtered = bookings.filter((b) => {
+          if (bookingFilter === 'da_verificare' && b.status !== 'prova_caricata') return false;
+          if (bookingFilter === 'attesa' && b.status !== 'in_attesa_pagamento') return false;
+          if (bookingFilter === 'confermate' && b.status !== 'confermata') return false;
+          if (bookingFilter === 'disdette' && b.status !== 'annullata' && b.status !== 'scaduta') return false;
+          if (q) {
+            const hay = `${b.id} ${b.pegId} ${b.userName} ${b.userEmail} ${b.causale}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+
+        const filterPills: Array<{ id: BookingFilter; label: string; count: number }> = [
+          { id: 'all', label: 'Tutte', count: counts.all },
+          { id: 'da_verificare', label: 'Da verificare', count: counts.da_verificare },
+          { id: 'attesa', label: 'In attesa pagamento', count: counts.attesa },
+          { id: 'confermate', label: 'Confermate', count: counts.confermate },
+          { id: 'disdette', label: 'Disdette / Scadute', count: counts.disdette },
+        ];
+
+        return (
+          <div className="stack-md">
+            <div className="card card-pad row-between">
+              <div>
+                <h2 style={{ margin: 0, fontSize: 16 }}>Prenotazioni &amp; Conferma Bonifici</h2>
+                <p className="text-xs text-muted" style={{ margin: '4px 0 0' }}>
+                  Sollecito automatico dopo <strong>{settings.reminderDaysX} gg</strong> senza ricevuta; sblocco automatico della piazzola dopo{' '}
+                  <strong>{settings.reminderDaysX + settings.expireExtraDaysY} gg</strong> totali.
+                </p>
+              </div>
+              <button type="button" className="btn btn-warning btn-sm" onClick={onSimulateDayPass}>
+                <Clock size={14} /> Simula +1 Giorno (Solleciti e Scadenze)
+              </button>
+            </div>
+
+            {/* Filtri stato + Ricerca */}
+            <div className="card card-pad stack-sm">
+              <div className="row-gap">
+                {filterPills.map((fp) => (
+                  <button
+                    key={fp.id}
+                    type="button"
+                    className={`btn btn-sm ${bookingFilter === fp.id ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setBookingFilter(fp.id)}
+                  >
+                    {fp.label}{' '}
+                    <span
+                      style={{
+                        padding: '1px 6px',
+                        borderRadius: 999,
+                        fontSize: 11,
+                        background: bookingFilter === fp.id ? 'rgba(255,255,255,0.22)' : 'var(--surface-muted)',
+                      }}
+                    >
+                      {fp.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <Search
+                  size={15}
+                  style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-muted)' }}
+                />
+                <input
+                  className="input"
+                  style={{ paddingLeft: 34 }}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cerca per nome, email, piazzola (es. 1R, 3) o codice #b..."
+                />
+              </div>
+            </div>
+
+            <div className="stack-sm">
+              {filtered.length === 0 ? (
+                <div className="card card-pad text-sm text-muted">
+                  Nessuna prenotazione trovata con i filtri selezionati.
+                </div>
+              ) : (
+                filtered.map((b) => {
+                  const meta = STATUS_META[b.status];
+                  return (
+                    <div key={b.id} className="card card-pad row-between">
+                      <div className="stack-sm" style={{ gap: 4 }}>
+                        <div className="row-gap">
+                          <strong style={{ fontSize: 14 }}>
+                            #{b.id} — Piazzola {b.pegId}
+                          </strong>
+                          <span className={`badge ${meta.cls}`}>{meta.label}</span>
+                        </div>
+                        <div className="text-xs text-muted">
+                          {b.userName} ({b.userEmail}) • {formatDateIT(b.dates[0])} →{' '}
+                          {formatDateIT(b.dates[b.dates.length - 1])} • <strong>€{b.total.toFixed(2)}</strong>
+                        </div>
+                        <div className="font-mono text-xs text-muted">{b.causale}</div>
+                        {b.proofFile && (
+                          <div className="text-xs">
+                            Ricevuta: <strong>{b.proofFile}</strong>{' '}
+                            {b.proofUrl && (
+                              <a href={b.proofUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: 700 }}>
+                                Apri file <ExternalLink size={11} style={{ verticalAlign: -1 }} />
+                              </a>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  {b.status === 'prova_caricata' && (
-                    <div className="row-gap">
-                      <button type="button" className="btn btn-success btn-sm" onClick={() => onApprove(b.id)}>
-                        <CheckCircle2 size={14} /> Conferma
-                      </button>
-                      <button type="button" className="btn btn-danger-outline btn-sm" onClick={() => onReject(b.id)}>
-                        <XCircle size={14} /> Rifiuta
-                      </button>
+                      {b.status === 'prova_caricata' && (
+                        <div className="row-gap">
+                          <button type="button" className="btn btn-success btn-sm" onClick={() => onApprove(b.id)}>
+                            <CheckCircle2 size={14} /> Conferma
+                          </button>
+                          <button type="button" className="btn btn-danger-outline btn-sm" onClick={() => onReject(b.id)}>
+                            <XCircle size={14} /> Rifiuta
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })
+              )}
+            </div>
 
-          <div className="card card-pad stack-sm">
-            <div className="row-gap">
-              <Mail size={15} color="var(--primary)" />
-              <strong style={{ fontSize: 14 }}>Log Email Automatiche</strong>
-            </div>
-            <div className="stack-sm" style={{ maxHeight: 200, overflowY: 'auto', gap: 6 }}>
-              {emailLogs.map((l) => (
-                <div key={l.id} className="text-xs" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 6 }}>
-                  <span className="text-muted">[{l.time}]</span>{' '}
-                  <span className="font-mono" style={{ color: 'var(--primary)' }}>{l.to}</span> — {l.subject}
-                </div>
-              ))}
-            </div>
+            <details className="card card-pad">
+              <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Mail size={15} color="var(--primary)" />
+                Log Email Automatiche ({emailLogs.length})
+              </summary>
+              <div className="stack-sm" style={{ maxHeight: 220, overflowY: 'auto', gap: 6, marginTop: 12 }}>
+                {emailLogs.map((l) => (
+                  <div key={l.id} className="text-xs" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 6 }}>
+                    <span className="text-muted">[{l.time}]</span>{' '}
+                    <span className="font-mono" style={{ color: 'var(--primary)' }}>{l.to}</span> — {l.subject}
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {tab === 'closures' && (
         <div className="stack-md">
